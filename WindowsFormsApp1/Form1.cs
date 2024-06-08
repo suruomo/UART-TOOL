@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Drawing;
 using System.IO;
 using System.IO.Ports;
@@ -22,7 +23,8 @@ namespace WindowsFormsApp1
         private bool isSetProperty = false; //属性设置标志
         private bool isHex = false;         //十六进制显示标志接收
         private bool isHexTx = false;       //十六进制显示标志发送标志
- 
+
+        private List<string> buff = new List<string>();
         /// <summary>
         /// 波形显示数据定义
         /// </summary>
@@ -404,6 +406,7 @@ namespace WindowsFormsApp1
                 {
                     String decodedString = Encoding.Default.GetString(ReceivedData); //设置编码格式，显示汉字                                
                     tbxRecvData.Text += decodedString + " "; //接收框显示，追加数据  
+                    buff.Add(decodedString);
                 }
                 else//如果接收模式为HEX数值模式
                 {
@@ -412,6 +415,7 @@ namespace WindowsFormsApp1
                         RecvDataText += ("0x" + ReceivedData[i].ToString("X2") + " "); //显示前缀0x
                         //RecvDataText += (ReceivedData[i].ToString("x2") + " "); //不显示前缀0x
                     }
+                    buff.Add(RecvDataText);
                     tbxRecvData.Text += RecvDataText;
                 }
 
@@ -609,22 +613,34 @@ namespace WindowsFormsApp1
             string strSeperator = ",";
             StringBuilder sbOutput = new StringBuilder();
 
-            int[][] inaOutput = new int[][] { new int[] { 1000, 2000, 3000, 4000, 5000 },
-                                        new int[] { 6000, 7000, 8000, 9000, 10000 },
-                                        new int[] { 11000, 12000, 13000, 14000, 15000 } };
+            int length = buff.Count;
+            string tempStr ="";
 
-            int ilength = inaOutput.GetLength(0);
-            for (int i = 0; i<ilength; i++)
+            try
+            {
+                for (int i = 0; i < length; i++)
                 {
-                    sbOutput.AppendLine(string.Join(strSeperator, inaOutput[i]));
-                }
-       
-            // Create and write the csv file
-            File.WriteAllText(strFilePath, sbOutput.ToString());
 
-            // To append more lines to the csv file
-            // File.AppendAllText(strFilePath, sbOutput.ToString());
-            MessageBox.Show("保存啦！", "提示");
+                    tempStr = buff.ElementAt(i);
+                    string[] strs = tempStr.Split(' ').ToArray();
+                    if ((strs.GetValue(0).Equals("99") && (strs.GetValue(strs.Length-2).Equals("66"))))
+                    {
+                            sbOutput.AppendLine(string.Join(strSeperator, strs));
+                    }
+
+                }
+              //  File.WriteAllText(strFilePath, sbOutput.ToString());
+                File.AppendAllText(strFilePath, sbOutput.ToString());
+
+                MessageBox.Show("保存啦！", "提示");
+
+
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show(ex.Message, "提示");
+            }
+
         }
         #endregion
     }
